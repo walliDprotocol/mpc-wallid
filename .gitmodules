@@ -1,0 +1,3 @@
+[submodule "mpc-node"]
+	path = mpc-node
+	url = https://github.com/walliDprotocol/mpc-node

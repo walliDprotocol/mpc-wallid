@@ -1,0 +1,375 @@
+{
+	"info": {
+		"_postman_id": "963039ee-5acd-4004-ae53-c1a79748a080",
+		"name": "WalliD",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "28622738"
+	},
+	"item": [
+		{
+			"name": "MPC",
+			"item": [
+				{
+					"name": "mpc-node",
+					"item": [
+						{
+							"name": "Sign Message",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// let response = pm.response.json();\r",
+											"\r",
+											"// if (response){\r",
+											"//     pm.environment.set(\"signature-r\", response.signature.R);\r",
+											"//     pm.environment.set(\"signature-s\", response.signature.S);\r",
+											"//     pm.environment.set(\"signature\", JSON.stringify(response.signature));\r",
+											"\r",
+											"    var tResp = pm.response.text().replace(/([^\"\\w-])([-0-9.]{8,100})([^\"\\w-])/g, '$1\\\"$2\\\"$3');\r",
+											"    console.log(\"tResp is \"+tResp);\r",
+											"\r",
+											"    var jsonData = JSON.parse(tResp).signature;\r",
+											"    console.log(\"jsonData is \",jsonData.R);\r",
+											"\r",
+											"    var R = jsonData.R.replace('\"',''); \r",
+											"    console.log(\"R is \"+R);\r",
+											"\r",
+											"    var S = jsonData.S.replace('\"',''); \r",
+											"    console.log(\"S is \"+S);\r",
+											"\r",
+											"    pm.environment.set(\"signature-r\", R);\r",
+											"    pm.environment.set(\"signature-s\", S);\r",
+											"\r",
+											"// }"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"msg\": \"hello\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{mpc-manager-url}}/api/v1/sign/",
+									"host": [
+										"{{mpc-manager-url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"sign",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Verify Message",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"msg\": \"hello\",\r\n    \"signature\": {\r\n        \"R\": {{signature-r}},\r\n        \"S\": {{signature-s}}\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{mpc-manager-url}}/api/v1/sign/verify",
+									"host": [
+										"{{mpc-manager-url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"sign",
+										"verify"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Public key",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{mpc-node-url}}/api/v1/auth/mpc_public_key",
+									"host": [
+										"{{mpc-node-url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"mpc_public_key"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "mpc-manager",
+					"item": [
+						{
+							"name": "claim_oidc",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"oidcTokenHash\": \"oidcToken\",\r\n    \"FRPSignatureHash\": \"userCredentialsFrpSignature\",\r\n    \"FRPPublicKey\": \"frpPublicKey\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{mpc-manager-url}}/api/v1/mpc/claim_oidc",
+									"host": [
+										"{{mpc-manager-url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"mpc",
+										"claim_oidc"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "new_account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"let response = pm.response.json()\r",
+											"const { recoveryPublicKey , accountId , error} = response\r",
+											"\r",
+											"pm.test('Test new_account response', function () {\r",
+											"    console.log('res', recoveryPublicKey , accountId , error, pm.response.code)\r",
+											"    const currentNearAccountId = pm.environment.get('nearAccountId')\r",
+											"    const masterNearAccountId = pm.environment.get('masterAccountId')\r",
+											"    if(pm.response.code === 500){\r",
+											"        pm.expect(error).to.equal('Account already exists');\r",
+											"    }else{\r",
+											"        pm.expect(recoveryPublicKey).to.contain(pm.environment.get('userPublicKey'));\r",
+											"        pm.expect(accountId).to.equal(`${currentNearAccountId}.${masterNearAccountId}`);\r",
+											"    }\r",
+											"\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const currentNearAccountId = pm.environment.get('nearAccountId')\r",
+											"   \r",
+											"pm.environment.set(\"nearAccountId\", utils.incrementAccountNumber(currentNearAccountId));\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"nearAccountId\": \"{{nearAccountId}}\",\r\n    \"createAccountOptions\": {\r\n        \"userPrivateKey\": \"{{userPrivateKey}}\"\r\n    },\r\n    \"oidcToken\": \"{{oidcToken}}\",\r\n    \"userCredentialsFrpSignature\": \"userCredentialsFrpSignature\",\r\n    \"frpPublicKey\": \"frpPublicKey\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{mpc-manager-url}}/api/v1/mpc/new_account",
+									"host": [
+										"{{mpc-manager-url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"mpc",
+										"new_account"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "user_credentials",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"nearAccountId\": \"mcp-test.testnet\",\r\n    \"createAccountOptions\": {},\r\n    \"oidcToken\": \"oidcToken\",\r\n    \"userCredentialsFrpSignature\": \"userCredentialsFrpSignature\",\r\n    \"frpPublicKey\": \"frpPublicKey\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{mpc-manager-url}}/api/v1/mpc/user_credentials",
+									"host": [
+										"{{mpc-manager-url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"mpc",
+										"user_credentials"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Public Key",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{mpc-manager-url}}/api/v1/mpc/mpc_public_key",
+									"host": [
+										"{{mpc-manager-url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"mpc",
+										"mpc_public_key"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "recover_account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"let response = pm.response.json()\r",
+											"const { recoveryPublicKey , accountId , error} = response\r",
+											"\r",
+											"pm.test('Test new_account response', function () {\r",
+											"    console.log('res', recoveryPublicKey , accountId , error, pm.response.code)\r",
+											"    const currentNearAccountId = pm.environment.get('nearAccountId')\r",
+											"    const masterNearAccountId = pm.environment.get('masterAccountId')\r",
+											"    // pm.environment.set(\"recoverAccountId\", utils.incrementAccountNumber(currentRecoverAccountId));\r",
+											"    if(pm.response.code === 500){\r",
+											"        pm.expect(error).to.equal('Account already exists');\r",
+											"    }else{\r",
+											"        pm.expect(recoveryPublicKey).to.contain(pm.environment.get('userPublicKey'));\r",
+											"        pm.expect(accountId).to.equal(`${currentNearAccountId}.${masterNearAccountId}`);\r",
+											"    }\r",
+											"\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    // \"nearAccountId\": \"{{recoverAccountId}}\",\r\n    \"createAccountOptions\": {\r\n        \"userPrivateKey\": \"{{recoverPrivateKey}}\"\r\n    },\r\n    \"oidcToken\": \"oidcToken\",\r\n    \"userCredentialsFrpSignature\": \"userCredentialsFrpSignature\",\r\n    \"frpPublicKey\": \"frpPublicKey\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{mpc-manager-url}}/api/v1/mpc/recover_account",
+									"host": [
+										"{{mpc-manager-url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"mpc",
+										"recover_account"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									"\r",
+									"utils = {\r",
+									"  incrementAccountNumber: function incrementAccountNumber(account) {\r",
+									"    console.log(account)\r",
+									"\r",
+									"    const match = account.match(/(\\d+)$/);\r",
+									"    if (match) {\r",
+									"        const number = parseInt(match[1], 10);\r",
+									"        const incrementedNumber = number + 1;\r",
+									"        return account.replace(/(\\d+)$/, incrementedNumber.toString());\r",
+									"    } else {\r",
+									"        throw new Error('No number found in account string');\r",
+									"    }\r",
+									"}\r",
+									"};"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									""
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
